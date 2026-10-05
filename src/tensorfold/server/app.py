@@ -21,7 +21,7 @@ from tensorfold.server.request_options import RequestOptions
 from tensorfold.server.http import served_model_ids
 from tensorfold.server import metrics
 from tensorfold.server.scheduler import ChatJob, Scheduler
-from tensorfold.server.stopping import StopPolicy, matched_stop
+from tensorfold.server.stopping import StopPolicy
 from tensorfold.server.text import (
     IncrementalText,
     _LockedTokenizer,
@@ -436,8 +436,7 @@ class ChatApp(RequestOptions, PromptBlocks):
 
         content_tokens = strip_trailing_stops(collected, set(stops.eos_ids))
         with self.tokenizer_lock:
-            raw_text = self.tokenizer.decode(content_tokens)
-            text = stops.visible(raw_text)
+            text = stops.visible(self.tokenizer.decode(content_tokens))
         if thinking:
             reasoning_text, content = split_thinking(text, finished=True, markers=self.think_markers)
             reasoning = reasoning_text.strip() or None
@@ -450,7 +449,6 @@ class ChatApp(RequestOptions, PromptBlocks):
         decode_tokens = max(0, len(collected) - 1)
         reply: dict[str, Any] = {
             "content": content,
-            "stop_sequence": matched_stop(raw_text, stops.strings),
             "reasoning": reasoning,
             "tool_calls_streamed": bool(calls_stream is not None and calls_stream.streamed),
             "finish_reason": stream.finish_reason if stream is not None else "length",

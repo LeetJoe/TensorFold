@@ -27,14 +27,20 @@ def test_glm_vision_loader_recognizes_legacy_mlx_vision_model_prefix():
     assert vision_key("vision_model.blocks.0.attn.qkv.weight") == "blocks.0.attn.qkv.weight"
 
 
-def test_glm_vision_rejects_cuda_before_reading_checkpoint(monkeypatch):
+def test_glm_vision_accepts_cuda_and_reads_the_checkpoint(monkeypatch):
     from argparse import Namespace
     from types import SimpleNamespace
     from tensorfold import families, serve_options
 
+    read = []
+
     def read_config(path):
-        raise AssertionError('unsupported backend must be rejected before reading checkpoint')
+        read.append(path)
+        return {"model_type": "glm5_next", "image_token_id": 154854, "image_start_token_id": 154830,
+                "image_end_token_id": 154831, "text_config": {"hidden_size": 4096},
+                "vision_config": {"out_hidden_size": 4096, "hidden_size": 1024}}
 
     monkeypatch.setattr(families, 'read_config', read_config)
-    with pytest.raises(ValueError, match='GLM.*MLX-only'):
-        serve_options.check(Namespace(vision=True), SimpleNamespace(model_type='glm5_next'), 'cuda', 'unused')
+    family = SimpleNamespace(model_type='glm5_next', package=SimpleNamespace())
+    serve_options.check(Namespace(vision=True), family, 'cuda', 'unused')
+    assert read == ['unused']

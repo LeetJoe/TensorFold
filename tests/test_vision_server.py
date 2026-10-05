@@ -108,11 +108,11 @@ def test_normalize_images_preserves_parts_and_instruction_order():
     assert messages[0]["role"] == "developer"
 
 
-@pytest.mark.parametrize("role", ["system", "developer", "assistant", "tool"])
-def test_normalize_rejects_images_outside_user_role(role):
+@pytest.mark.parametrize("role", ["system", "developer", "assistant"])
+def test_normalize_rejects_images_outside_user_and_tool_roles(role):
     messages = image_messages()
     messages[0]["role"] = role
-    with pytest.raises(RequestError, match="only in user"):
+    with pytest.raises(RequestError, match="only in user and tool"):
         normalize_messages(messages, allow_images=True)
 
 
